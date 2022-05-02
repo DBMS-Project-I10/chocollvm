@@ -1,7 +1,14 @@
 a:int = 1
-b:str = "Hello"
+b:int = 2
+#b:str = "Hello"
 c:bool = True
+d:bool = False
 
-#a = 3
+def sum(a:int, b:int) -> int:
+    return a + b
 
-#printf("%s", b)
+c = not d
+
+#printf("%d", sum(a, b))
+printf("%d", c)
+printf("%d", sum(a, b))

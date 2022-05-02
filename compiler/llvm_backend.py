@@ -106,23 +106,22 @@ class LLVMBackend(Backend):
     ##################################
 
     def VarDef(self, node: VarDef):
-        # Create alloca for variable
+        # alloca for variable
         alloca = self._create_alloca(node.var.identifier.name, self._get_llvm_type(node.var.type.className))
 
-        if node.var.type.className == "int":
-            self.builder.store(self.IntegerLiteral(node.value), alloca)
-        elif node.var.type.className == "str":
-            self.builder.store(self.StringLiteral(node.value), alloca)
-        elif node.var.type.className == "bool":
-            self.builder.store(self.BooleanLiteral(node.value), alloca)
-        elif node.var.type.className == "<None>":
-            self.builder.store(self.NoneLiteral(node.value), alloca)
+        self.builder.store(self.visit(node.value), alloca)
 
         # Add variable to symbol table
         self.func_symtab[-1][node.var.identifier.name] = alloca
 
     def AssignStmt(self, node: AssignStmt):
-        pass
+        # Get values from symbol table
+        targets = [self._get_var_addr(t.name) for t in node.targets]
+
+        value = self.visit(node.value)
+
+        for target in targets:
+            self.builder.store(value, target)
 
     def IfStmt(self, node: IfStmt):
         pass
@@ -131,7 +130,44 @@ class LLVMBackend(Backend):
         pass
 
     def BinaryExpr(self, node: BinaryExpr) -> Optional[ICMPInstr]:
-        pass
+        # Get values from symbol table
+        left = self.visit(node.left)
+        right = self.visit(node.right)
+    
+        # Get LLVM type object
+        llvm_ty = self._get_llvm_type(node.inferredType.className)
+
+        # check if string, manually add
+        if node.inferredType.className == "str":
+            raise Exception("String concatenation not implemented")
+    
+        # Create comparison instruction
+        if node.operator == "+":
+            return self.builder.add(left, right)
+        elif node.operator == "-":
+            return self.builder.sub(left, right)
+        elif node.operator == "*":
+            return self.builder.mul(left, right)
+        elif node.operator == "%":
+            return self.builder.srem(left, right)
+        elif node.operator == "==":
+            return self.builder.icmp_signed("==", left, right)
+        elif node.operator == "!=":
+            return self.builder.icmp_signed("!=", left, right)
+        elif node.operator == ">":
+            return self.builder.icmp_signed(">", left, right)
+        elif node.operator == "<":
+            return self.builder.icmp_signed("<", left, right)
+        elif node.operator == ">=":
+            return self.builder.icmp_signed(">=", left, right)
+        elif node.operator == "<=":
+            return self.builder.icmp_signed("<=", left, right)
+        elif node.operator == "and":
+            return self.builder.and_(left, right)
+        elif node.operator == "or":
+            return self.builder.or_(left, right)
+        else:
+            raise Exception(f"Invalid operator: {node.operator}")
 
     def Identifier(self, node: Identifier) -> LoadInstr:
         return self.builder.load(self._get_var_addr(node.name))
