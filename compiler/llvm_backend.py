@@ -106,7 +106,20 @@ class LLVMBackend(Backend):
     ##################################
 
     def VarDef(self, node: VarDef):
-        pass
+        # Create alloca for variable
+        alloca = self._create_alloca(node.var.identifier.name, self._get_llvm_type(node.var.type.className))
+
+        if node.var.type.className == "int":
+            self.builder.store(self.IntegerLiteral(node.value), alloca)
+        elif node.var.type.className == "str":
+            self.builder.store(self.StringLiteral(node.value), alloca)
+        elif node.var.type.className == "bool":
+            self.builder.store(self.BooleanLiteral(node.value), alloca)
+        elif node.var.type.className == "<None>":
+            self.builder.store(self.NoneLiteral(node.value), alloca)
+
+        # Add variable to symbol table
+        self.func_symtab[-1][node.var.identifier.name] = alloca
 
     def AssignStmt(self, node: AssignStmt):
         pass
@@ -121,7 +134,7 @@ class LLVMBackend(Backend):
         pass
 
     def Identifier(self, node: Identifier) -> LoadInstr:
-        pass
+        return self.builder.load(self._get_var_addr(node.name))
 
     def IfExpr(self, node: IfExpr) -> PhiInstr:
         pass
