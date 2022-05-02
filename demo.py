@@ -12,3 +12,8 @@ c = not d
 #printf("%d", sum(a, b))
 printf("%d", c)
 printf("%d", sum(a, b))
+
+if c:
+    printf("%d", 1)
+else:
+    printf("%d", 2)
