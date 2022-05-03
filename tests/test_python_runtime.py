@@ -68,7 +68,7 @@ class TestPythonRuntime(TestCase):
                         f.write(builder.emit())
 
                     output = subprocess.check_output(
-                        f"cd {str(Path(__file__).parent.parent.resolve())} && python3 {name}",
+                        f"cd '{str(Path(__file__).parent.parent.resolve())}' && python3 {name}",
                         shell=True,
                     )
                     lines = output.decode().split("\n")
@@ -93,6 +93,6 @@ class TestPythonRuntime(TestCase):
 
     def tearDown(self):
         subprocess.run(
-            f"cd {str(Path(__file__).parent.parent.resolve())} && make -s clean",
+            f"cd '{str(Path(__file__).parent.parent.resolve())}' && make -s clean",
             shell=True,
         )

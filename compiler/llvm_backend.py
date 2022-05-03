@@ -150,6 +150,29 @@ class LLVMBackend(Backend):
             condition = self.visit(node.condition)
             self.builder.cbranch(condition, bb_if, bb_else)
 
+        # attempted direct return value
+        '''
+        with self.builder.goto_block(bb_if):
+            is_return = False
+            for stmt in node.thenBody:
+                self.visit(stmt)
+                if isinstance(stmt, ReturnStmt):
+                    is_return = True
+                    break
+            if not is_return:
+                self.builder.branch(bb_end)
+
+        with self.builder.goto_block(bb_else):
+            is_return = False
+            for stmt in node.elseBody:
+                self.visit(stmt)
+                if isinstance(stmt, ReturnStmt):
+                    is_return = True
+                    break
+            if not is_return:
+                self.builder.branch(bb_end)
+        '''
+
         with self.builder.goto_block(bb_if):
             for stmt in node.thenBody:
                 self.visit(stmt)
@@ -237,6 +260,7 @@ class LLVMBackend(Backend):
         return self.builder.load(self._get_var_addr(node.name))
 
     def IfExpr(self, node: IfExpr) -> PhiInstr:
+        
         if self.builder is None:
             raise Exception("No builder is active")
 
@@ -252,23 +276,45 @@ class LLVMBackend(Backend):
             self.module.get_unique_name("else_block")
         )
 
-        bb_end = self.builder.append_basic_block(
-            self.module.get_unique_name("end_block")
+        bb_phi = self.builder.append_basic_block(
+            self.module.get_unique_name("phi_block")
         )
-
-        phi = self.builder.phi(self._get_llvm_type(node.inferredType.className))
 
         self.builder.branch(bb_condition)
 
+        with self.builder.goto_block(bb_phi):
+            phi = self.builder.phi(self._get_llvm_type(node.inferredType.className))
+        
         with self.builder.goto_block(bb_condition):
             # Create phi node for the condition
             condition = self.visit(node.condition)
             self.builder.cbranch(condition, bb_if, bb_else)
 
-        phi.add_incoming(self.visit(node.thenExpr), bb_if)
-        phi.add_incoming(self.visit(node.elseExpr), bb_else)
+        with self.builder.goto_block(bb_if):
+            bb_post_then = self.builder.append_basic_block(
+                self.module.get_unique_name("post_then")
+            )
 
-        self.builder.position_at_end(bb_end) 
+            val = self.visit(node.thenExpr)
+            self.builder.branch(bb_post_then)
+
+            with self.builder.goto_block(bb_post_then):
+                phi.add_incoming(val, bb_post_then)
+                self.builder.branch(bb_phi)
+
+        with self.builder.goto_block(bb_else):
+            bb_post_else = self.builder.append_basic_block(
+                self.module.get_unique_name("post_else")
+            )
+
+            val = self.visit(node.elseExpr)
+            self.builder.branch(bb_post_else)
+
+            with self.builder.goto_block(bb_post_else):
+                phi.add_incoming(val, bb_post_else)
+                self.builder.branch(bb_phi)
+
+        self.builder.position_at_end(bb_phi) 
         return phi
 
 

@@ -66,7 +66,7 @@ class TestLLVMRuntime(TestCase):
                         f.write(str(ir.module))
 
                     output = subprocess.check_output(
-                        f"cd {str(Path(__file__).parent.parent.resolve())} && lli {name}",
+                        f"cd '{str(Path(__file__).parent.parent.resolve())}' && lli {name}",
                         shell=True,
                     )
                     decoded = output.decode()
@@ -98,6 +98,6 @@ class TestLLVMRuntime(TestCase):
 
     def tearDown(self):
         subprocess.run(
-            f"cd {str(Path(__file__).parent.parent.resolve())} && make -s clean",
+            f"cd '{str(Path(__file__).parent.parent.resolve())}' && make -s clean",
             shell=True,
         )
